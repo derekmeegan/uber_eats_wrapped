@@ -5,7 +5,7 @@ import chalk from "chalk";
 import { simpleCache, readCache } from "./utils.js";
 import { z } from "zod";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 
 // Initialize AWS clients
 const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
@@ -24,6 +24,19 @@ async function getLiveViewUrl(sessionId: string): Promise<string> {
     console.error("Error getting live view link:", error);
     return '';
   }
+}
+
+// Helper function to get DynamoDB status
+async function getStatus(userEmail: string) {
+  const getCommand = new GetItemCommand({
+    TableName: process.env.DYNAMODB_TABLE_NAME,
+    Key: {
+      userEmail: { S: userEmail }
+    }
+  });
+  
+  const result = await dynamoClient.send(getCommand);
+  return result.Item ? { status: result.Item.status?.S } : null;
 }
 
 // Helper function to update DynamoDB status
@@ -260,6 +273,13 @@ export const handler = async function(event: any) {
   console.log(`Processing request for user: ${userEmail}`);
 
   try {
+    // Check if extraction already in progress/completed
+    const existingStatus = await getStatus(userEmail);
+    if (existingStatus?.status === 'extracting' || existingStatus?.status === 'completed' || existingStatus?.status === 'error') {
+      console.log("Extraction already in progress/completed/error, skipping");
+      return;
+    }
+
     // Initial status update
     await updateStatus(userEmail, 'starting', undefined, 'Initializing browser session...');
 
