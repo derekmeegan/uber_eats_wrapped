@@ -260,6 +260,9 @@ export const handler = async function(event: any) {
     // Initial status update
     await updateStatus(userEmail, 'starting', undefined, 'Initializing browser session...');
 
+    console.log("Initializing stagehand");
+    console.log(StagehandConfig);
+
     const stagehand = new Stagehand(StagehandConfig);
     await stagehand.init();
 
