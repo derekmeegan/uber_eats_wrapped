@@ -9,7 +9,7 @@ const StagehandConfig: ConstructorParams = {
   domSettleTimeoutMs: 30_000,
   
   // LLM configuration - matching the working example format
-  modelName: "gpt-4o",
+  modelName: "openai/gpt-4.1-mini" as any,
   modelClientOptions: {
     apiKey: process.env.OPENAI_API_KEY, /* Model API key */
   },
@@ -33,6 +33,7 @@ const StagehandConfig: ConstructorParams = {
         height: 768,
       },
     },
+    region: "us-east-1"
   },
   localBrowserLaunchOptions: {
     viewport: {
