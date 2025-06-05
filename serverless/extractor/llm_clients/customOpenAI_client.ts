@@ -45,7 +45,7 @@ export class CustomOpenAIClient extends LLMClient {
   constructor({ modelName, client }: { modelName: string; client: OpenAI }) {
     super(modelName as AvailableModel);
     this.client = client;
-    this.modelName = modelName as AvailableModel;
+    this.modelName = modelName as any; // Allow custom model names like "openai/gpt-4.1-mini"
   }
 
   async createChatCompletion<T = ChatCompletion>({

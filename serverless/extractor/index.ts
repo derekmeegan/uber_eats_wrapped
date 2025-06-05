@@ -112,7 +112,7 @@ async function main({
     while (!loggedIn) {
       await page.waitForTimeout(30_000);
       // wait for user to login by observing if cart button is visible
-      const [cartButton] = await page.observe("Click the cart button");
+      const [cartButton] = await page.observe("Click the cart button that contais the user's orders");
 
       const cartButtonFiltered = [cartButton].filter((button: ObserveResult) => button && button.description.toLowerCase().includes("cart"));
       console.log(cartButtonFiltered);
