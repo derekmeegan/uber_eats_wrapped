@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uber Eats Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="email"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .status.starting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.awaiting_login {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .status.extracting {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .browser-frame {
+            margin-top: 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 600px;
+        }
+        .browser-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍔 Uber Eats Order Analyzer</h1>
+        
+        <form id="extractionForm">
+            <div class="form-group">
+                <label for="email">Your Email Address:</label>
+                <input type="email" id="email" required placeholder="your.email@example.com">
+            </div>
+            <button type="submit" id="submitBtn">Start Analysis</button>
+        </form>
+
+        <div id="statusContainer" class="hidden">
+            <div id="status" class="status"></div>
+            <div id="browserFrame" class="browser-frame hidden">
+                <iframe id="browserIframe" src=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Replace with your actual API Gateway URL and API Key
+        const API_BASE_URL = 'https://your-api-id.execute-api.region.amazonaws.com/v1';
+        const API_KEY = 'your-api-key-here'; // Get this from CDK output
+        
+        let polling = false;
+        let pollInterval;
+
+        document.getElementById('extractionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const statusContainer = document.getElementById('statusContainer');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Starting...';
+            statusContainer.classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/extract`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY,
+                    },
+                    body: JSON.stringify({ userEmail: email })
+                });
+                
+                if (response.status === 202) {
+                    // Async invocation successful, start polling
+                    updateStatus('starting', 'Extraction started successfully. Initializing...');
+                    setTimeout(() => startPolling(email), 2000); // Wait 2 seconds before polling
+                } else {
+                    throw new Error('Failed to start extraction');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('error', 'Failed to start extraction. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Start Analysis';
+            }
+        });
+
+        function startPolling(email) {
+            if (polling) return;
+            
+            polling = true;
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/extract/${encodeURIComponent(email)}`, {
+                        headers: {
+                            'X-API-Key': API_KEY,
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const status = await response.json();
+                        updateStatus(status.status, status.message, status.browserbaseSessionId);
+                        
+                        // Stop polling when completed or error
+                        if (status.status === 'completed' || status.status === 'error') {
+                            stopPolling();
+                        }
+                    } else if (response.status === 404) {
+                        // Status not found yet, continue polling
+                        console.log('Status not found yet, continuing to poll...');
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 5000); // Poll every 5 seconds
+        }
+
+        function stopPolling() {
+            polling = false;
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Start Analysis';
+        }
+
+        function updateStatus(status, message, browserbaseSessionId) {
+            const statusDiv = document.getElementById('status');
+            const browserFrame = document.getElementById('browserFrame');
+            const iframe = document.getElementById('browserIframe');
+            
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message || getDefaultMessage(status);
+            
+            // Show browser iframe if awaiting login and we have a session ID
+            if (status === 'awaiting_login' && browserbaseSessionId) {
+                iframe.src = `https://browserbase.com/sessions/${browserbaseSessionId}`;
+                browserFrame.classList.remove('hidden');
+            } else {
+                browserFrame.classList.add('hidden');
+            }
+        }
+
+        function getDefaultMessage(status) {
+            const messages = {
+                starting: 'Initializing browser session...',
+                awaiting_login: 'Please login using the browser session below',
+                extracting: 'Extracting your order data...',
+                completed: 'Analysis completed! Check your email for results.',
+                error: 'An error occurred during extraction'
+            };
+            return messages[status] || 'Processing...';
+        }
+    </script>
+</body>
+</html> 

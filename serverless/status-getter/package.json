@@ -1,0 +1,20 @@
+{
+  "name": "uber-eats-status-getter",
+  "version": "1.0.0",
+  "description": "Status getter Lambda for Uber Eats extraction service",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "package": "npm run build && zip -r function.zip ."
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "aws-lambda": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.130",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+} 
