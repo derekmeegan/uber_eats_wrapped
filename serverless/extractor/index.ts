@@ -246,16 +246,8 @@ async function main({
     throw error;
   }
 
-  stagehand.log({
-    category: "create-browser-app",
-    message: `Metrics`,
-    auxiliary: {
-      metrics: {
-        value: JSON.stringify(stagehand.metrics),
-        type: "object",
-      },
-    },
-  });
+  // Log completion
+  console.log("Extraction completed successfully");
 }
 
 exports.handler = async function(event: any) {

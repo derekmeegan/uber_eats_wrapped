@@ -5,7 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "clean": "rm -f *.js *.js.map *.d.ts *.d.ts.map",
+    "build": "npm run clean && tsc",
+    "prebuild": "npm run clean",
     "package": "npm run build && zip -r function.zip ."
   },
   "dependencies": {

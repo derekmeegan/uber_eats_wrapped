@@ -1,0 +1,21 @@
+# Compiled JavaScript files
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# But keep config files if needed
+!webpack.config.js
+!jest.config.js
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Cache
+cache.json
+
+# Downloads
+downloads/ 
