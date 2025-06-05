@@ -154,6 +154,11 @@ class UberEatsAnalyzerStack(Stack):
             integration_responses=[
                 apigateway.IntegrationResponse(
                     status_code="202",
+                    response_headers={
+                        'Access-Control-Allow-Origin': "'*'",
+                        'Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+                        'Access-Control-Allow-Methods': "'POST,OPTIONS'"
+                    }
                 )
             ],
         )
@@ -244,8 +249,22 @@ class UberEatsAnalyzerStack(Stack):
                 "application/json": extract_request_model
             },
             method_responses=[
-                apigateway.MethodResponse(status_code="202"),
-                apigateway.MethodResponse(status_code="400")
+                apigateway.MethodResponse(
+                    status_code="202",
+                    response_headers={
+                        'Access-Control-Allow-Origin': True,
+                        'Access-Control-Allow-Headers': True,
+                        'Access-Control-Allow-Methods': True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="400",
+                    response_headers={
+                        'Access-Control-Allow-Origin': True,
+                        'Access-Control-Allow-Headers': True,
+                        'Access-Control-Allow-Methods': True
+                    }
+                )
             ]
         )
 
@@ -259,10 +278,38 @@ class UberEatsAnalyzerStack(Stack):
                 'method.request.path.userEmail': True
             },
             method_responses=[
-                apigateway.MethodResponse(status_code="200"),
-                apigateway.MethodResponse(status_code="404"),
-                apigateway.MethodResponse(status_code="400"),
-                apigateway.MethodResponse(status_code="500")
+                apigateway.MethodResponse(
+                    status_code="200",
+                    response_headers={
+                        'Access-Control-Allow-Origin': True,
+                        'Access-Control-Allow-Headers': True,
+                        'Access-Control-Allow-Methods': True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="404",
+                    response_headers={
+                        'Access-Control-Allow-Origin': True,
+                        'Access-Control-Allow-Headers': True,
+                        'Access-Control-Allow-Methods': True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="400",
+                    response_headers={
+                        'Access-Control-Allow-Origin': True,
+                        'Access-Control-Allow-Headers': True,
+                        'Access-Control-Allow-Methods': True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="500",
+                    response_headers={
+                        'Access-Control-Allow-Origin': True,
+                        'Access-Control-Allow-Headers': True,
+                        'Access-Control-Allow-Methods': True
+                    }
+                )
             ]
         )
 
