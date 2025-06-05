@@ -9,7 +9,7 @@ const StagehandConfig: ConstructorParams = {
   domSettleTimeoutMs: 30_000,
   
   // LLM configuration
-  modelName: "gpt-4.1-mini" as any,
+  modelName: "gpt-4o-mini",
   modelClientOptions: {
     apiKey: process.env.OPENAI_API_KEY, /* Model API key */
   },
