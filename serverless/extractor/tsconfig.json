@@ -18,10 +18,11 @@
   "include": [
     "*.ts",
     "*.js",
-    "llm_clients/**/*.ts"
+    "llm_clients/customOpenAI_client.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "llm_clients/aisdk_client.ts"
   ]
 }
