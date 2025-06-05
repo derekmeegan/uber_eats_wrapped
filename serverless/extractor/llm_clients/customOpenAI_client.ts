@@ -118,7 +118,7 @@ export class CustomOpenAIClient extends LLMClient {
       options.messages.map((message) => {
         if (Array.isArray(message.content)) {
           const contentParts = message.content.map((content) => {
-            if ("image_url" in content) {
+            if ("image_url" in content && content.image_url) {
               const imageContent: ChatCompletionContentPartImage = {
                 image_url: {
                   url: content.image_url.url,
@@ -128,7 +128,7 @@ export class CustomOpenAIClient extends LLMClient {
               return imageContent;
             } else {
               const textContent: ChatCompletionContentPartText = {
-                text: content.text,
+                text: content.text || "",
                 type: "text",
               };
               return textContent;
@@ -201,7 +201,7 @@ export class CustomOpenAIClient extends LLMClient {
           type: "object",
         },
         requestId: {
-          value: requestId,
+          value: requestId || "",
           type: "string",
         },
       },
