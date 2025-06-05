@@ -159,6 +159,24 @@ class UberEatsAnalyzerStack(Stack):
                         'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
                         'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
                     }
+                ),
+                apigateway.IntegrationResponse(
+                    status_code="400",
+                    selection_pattern="4\\d{2}",
+                    response_parameters={
+                        'method.response.header.Access-Control-Allow-Origin': "'*'",
+                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+                        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
+                    }
+                ),
+                apigateway.IntegrationResponse(
+                    status_code="500",
+                    selection_pattern="5\\d{2}",
+                    response_parameters={
+                        'method.response.header.Access-Control-Allow-Origin': "'*'",
+                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+                        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
+                    }
                 )
             ],
         )
@@ -259,6 +277,14 @@ class UberEatsAnalyzerStack(Stack):
                 ),
                 apigateway.MethodResponse(
                     status_code="400",
+                    response_parameters={
+                        'method.response.header.Access-Control-Allow-Origin': True,
+                        'method.response.header.Access-Control-Allow-Headers': True,
+                        'method.response.header.Access-Control-Allow-Methods': True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="500",
                     response_parameters={
                         'method.response.header.Access-Control-Allow-Origin': True,
                         'method.response.header.Access-Control-Allow-Headers': True,
