@@ -4,28 +4,42 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const StagehandConfig: ConstructorParams = {
-  verbose: 1 /* Verbosity level for logging: 0 = silent, 1 = info, 2 = all */,
-  domSettleTimeoutMs: 30_000 /* Timeout for DOM to settle in milliseconds */,
-
-  modelName: "openai/gpt-4.1-mini" as any /* Name of the model to use */,
+  env: "BROWSERBASE",
+  verbose: 1,
+  domSettleTimeoutMs: 30_000,
+  
+  // LLM configuration - matching the working example format
+  modelName: "gpt-4o",
   modelClientOptions: {
-    apiKey: process.env.OPENAI_API_KEY,
-  } /* Configuration options for the model client */,
+    apiKey: process.env.OPENAI_API_KEY, /* Model API key */
+  },
 
-  // Browser configuration
-  env: "BROWSERBASE" /* Environment to run in: LOCAL or BROWSERBASE */,
-  apiKey: process.env.BROWSERBASE_API_KEY /* API key for authentication */,
-  projectId: process.env.BROWSERBASE_PROJECT_ID /* Project identifier */,
+  // Browserbase configuration
+  apiKey: process.env.BROWSERBASE_API_KEY,
+  projectId: process.env.BROWSERBASE_PROJECT_ID,
   browserbaseSessionCreateParams: {
     projectId: process.env.BROWSERBASE_PROJECT_ID!,
-    proxies: true,
+    proxies: [{
+      "type": "browserbase",
+      "geolocation": {
+        "city": "PHILADELPHIA",
+        "state": "PA",
+        "country": "US"
+      }
+    }],
+    browserSettings: {
+      viewport: {
+        width: 1024,
+        height: 768,
+      },
+    },
   },
   localBrowserLaunchOptions: {
     viewport: {
       width: 1024,
       height: 768,
     },
-  } /* Configuration options for the local browser */,
+  },
 };
 
 export default StagehandConfig;
