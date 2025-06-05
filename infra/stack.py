@@ -28,13 +28,13 @@ class UberEatsAnalyzerStack(Stack):
         browser_base_project_id = secretsmanager.Secret.from_secret_name_v2(
             self,
             "BrowserbaseProjectId",
-            "BrowserbaseLambda/BrowserbaseProjectId"
+            "DerekBrowserbaseProjectId"
         )
         
         browserbase_api_key_secret = secretsmanager.Secret.from_secret_name_v2(
             self,
             "BrowserbaseApiKey",
-            "BrowserbaseLambda/BrowserbaseApiKey"
+            "DerekBrowserbaseApiKey"
         )
 
         derek_sendgrid_api_key = secretsmanager.Secret.from_secret_name_v2(
@@ -52,7 +52,7 @@ class UberEatsAnalyzerStack(Stack):
         openai_api_key = secretsmanager.Secret.from_secret_name_v2(
             self,
             "OpenAIApiKey",
-            "OpenAIApiKey"
+            "DerekOpenAIApiKey"
         )
 
         # Create DynamoDB table for tracking extraction status  
@@ -92,9 +92,6 @@ class UberEatsAnalyzerStack(Stack):
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
             ]
         )
-        browserbase_api_key_secret.grant_read(extractor_execution_role)
-        browser_base_project_id.grant_read(extractor_execution_role)
-        openai_api_key.grant_read(extractor_execution_role)
         orders_bucket.grant_read_write(extractor_execution_role)
         extraction_status_table.grant_read_write_data(extractor_execution_role)
 
@@ -118,9 +115,9 @@ class UberEatsAnalyzerStack(Stack):
             memory_size=1024,
             role=extractor_execution_role,
             environment={
-                "BROWSERBASE_API_KEY_SECRET_ARN": browserbase_api_key_secret.secret_arn,
-                "BROWSERBASE_PROJECT_ID_SECRET_ARN": browser_base_project_id.secret_arn,
-                "OPENAI_API_KEY_SECRET_ARN": openai_api_key.secret_arn,
+                "BROWSERBASE_API_KEY": browserbase_api_key_secret.secret_value.to_string(),
+                "BROWSERBASE_PROJECT_ID": browser_base_project_id.secret_value.to_string(),
+                "OPENAI_API_KEY": openai_api_key.secret_value.to_string(),
                 "S3_BUCKET_NAME": orders_bucket.bucket_name,
                 "DYNAMODB_TABLE_NAME": extraction_status_table.table_name,
             },

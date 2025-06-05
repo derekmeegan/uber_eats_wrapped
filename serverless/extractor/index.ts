@@ -1,24 +1,29 @@
 import { Stagehand, Page, BrowserContext, ObserveResult } from "@browserbasehq/stagehand";
+import { Browserbase } from "@browserbasehq/sdk";
 import StagehandConfig from "./stagehand.config.js";
 import chalk from "chalk";
-import boxen from "boxen";
 import { simpleCache, readCache } from "./utils.js";
 import { z } from "zod";
-import { SNSEvent } from 'aws-lambda';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { DynamoDBClient, PutItemCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
-import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 
 // Initialize AWS clients
 const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
-// Helper function to get secret value
-async function getSecretValue(secretArn: string): Promise<string> {
-  const command = new GetSecretValueCommand({ SecretId: secretArn });
-  const response = await secretsClient.send(command);
-  return response.SecretString || '';
+// Helper function to get live view URL with hidden navbar
+async function getLiveViewUrl(sessionId: string): Promise<string> {
+  try {
+    const apiKey = process.env.BROWSERBASE_API_KEY!;
+    const bb = new Browserbase({ apiKey });
+    const liveViewLinks = await bb.sessions.debug(sessionId);
+    const liveViewLink = liveViewLinks.debuggerUrl;
+    const hiddenNavbarUrl = `${liveViewLink}&navbar=false`;
+    return hiddenNavbarUrl;
+  } catch (error) {
+    console.error("Error getting live view link:", error);
+    return '';
+  }
 }
 
 // Helper function to update DynamoDB status
@@ -88,14 +93,9 @@ async function main({
 
     // Get live view link for user login
     let liveViewUrl = '';
-    try {
-      if (stagehand.browserbaseSessionID) {
-        // Use the standard Browserbase live view URL format
-        liveViewUrl = `https://browserbase.com/sessions/${stagehand.browserbaseSessionID}?navbar=false`;
-        console.log("Live view URL generated:", liveViewUrl);
-      }
-    } catch (error) {
-      console.error("Error getting live view link:", error);
+    if (stagehand.browserbaseSessionID) {
+      liveViewUrl = await getLiveViewUrl(stagehand.browserbaseSessionID);
+      console.log("Live view URL generated:", liveViewUrl);
     }
 
     // Update status to indicate user needs to login
@@ -258,7 +258,6 @@ async function main({
   });
 }
 
-
 exports.handler = async function(event: any) {
   // Extract user email from async API Gateway invocation
   const userEmail = event.userEmail;
@@ -269,42 +268,8 @@ exports.handler = async function(event: any) {
     // Initial status update
     await updateStatus(userEmail, 'starting', undefined, 'Initializing browser session...');
 
-    // Get secrets from Secrets Manager
-    const browserbaseApiKey = await getSecretValue(process.env.BROWSERBASE_API_KEY_SECRET_ARN!);
-    const browserbaseProjectId = await getSecretValue(process.env.BROWSERBASE_PROJECT_ID_SECRET_ARN!);
-    const openaiApiKey = await getSecretValue(process.env.OPENAI_API_KEY_SECRET_ARN!);
-
-    // Update Stagehand config with retrieved secrets
-    const configWithSecrets = {
-      ...StagehandConfig,
-      apiKey: browserbaseApiKey,
-      projectId: browserbaseProjectId,
-      browserbaseSessionCreateParams: {
-        projectId: browserbaseProjectId,
-        proxies: true,
-      },
-      modelClientOptions: {
-        apiKey: openaiApiKey,
-      },
-    };
-
-    const stagehand = new Stagehand(configWithSecrets);
+    const stagehand = new Stagehand(StagehandConfig);
     await stagehand.init();
-
-  if (StagehandConfig.env === "BROWSERBASE" && stagehand.browserbaseSessionID) {
-    console.log(
-      boxen(
-        `View this session live in your browser: \n${chalk.blue(
-          `https://browserbase.com/sessions/${stagehand.browserbaseSessionID}`,
-        )}`,
-        {
-          title: "Browserbase",
-          padding: 1,
-          margin: 3,
-        },
-      ),
-    );
-  }
 
     const page = stagehand.page;
     const context = stagehand.context;
@@ -312,14 +277,9 @@ exports.handler = async function(event: any) {
       page,
       context,
       stagehand,
-      userEmail
+      userEmail,
     });
     await stagehand.close();
-    console.log(
-      `\n🤘 Thanks so much for using Stagehand! Reach out to us on Slack if you have any feedback: ${chalk.blue(
-        "https://stagehand.dev/slack",
-      )}\n`,
-    );
   } catch (error) {
     console.error("Error in extraction process:", error);
     await updateStatus(userEmail, 'error', undefined, `Extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
