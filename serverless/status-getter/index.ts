@@ -50,6 +50,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       browserbaseSessionId: result.Item.browserbaseSessionId?.S,
       message: result.Item.message?.S,
       timestamp: result.Item.timestamp?.S,
+      liveViewUrl: result.Item.liveViewUrl?.S,
     };
 
     return {

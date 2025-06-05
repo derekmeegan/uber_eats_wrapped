@@ -122,7 +122,6 @@ class UberEatsAnalyzerStack(Stack):
                 "BROWSERBASE_PROJECT_ID_SECRET_ARN": browser_base_project_id.secret_arn,
                 "OPENAI_API_KEY_SECRET_ARN": openai_api_key.secret_arn,
                 "S3_BUCKET_NAME": orders_bucket.bucket_name,
-                "AWS_REGION": self.region,
                 "DYNAMODB_TABLE_NAME": extraction_status_table.table_name,
             },
         )

@@ -22,7 +22,7 @@ async function getSecretValue(secretArn: string): Promise<string> {
 }
 
 // Helper function to update DynamoDB status
-async function updateStatus(userEmail: string, status: string, browserbaseSessionId?: string, message?: string) {
+async function updateStatus(userEmail: string, status: string, browserbaseSessionId?: string, message?: string, liveViewUrl?: string) {
   const timestamp = new Date().toISOString();
   
   const params: any = {
@@ -49,6 +49,11 @@ async function updateStatus(userEmail: string, status: string, browserbaseSessio
   if (message) {
     params.UpdateExpression += ', message = :message';
     params.ExpressionAttributeValues[':message'] = { S: message };
+  }
+
+  if (liveViewUrl) {
+    params.UpdateExpression += ', liveViewUrl = :liveViewUrl';
+    params.ExpressionAttributeValues[':liveViewUrl'] = { S: liveViewUrl };
   }
 
   const updateCommand = new UpdateItemCommand(params);
@@ -81,12 +86,25 @@ async function main({
     // prompt user to login in live viewer
     console.log("Login button is visible. User is not logged in, please login in the browser");
 
+    // Get live view link for user login
+    let liveViewUrl = '';
+    try {
+      if (stagehand.browserbaseSessionID) {
+        // Use the standard Browserbase live view URL format
+        liveViewUrl = `https://browserbase.com/sessions/${stagehand.browserbaseSessionID}?navbar=false`;
+        console.log("Live view URL generated:", liveViewUrl);
+      }
+    } catch (error) {
+      console.error("Error getting live view link:", error);
+    }
+
     // Update status to indicate user needs to login
     await updateStatus(
       userEmail, 
       'awaiting_login', 
       stagehand.browserbaseSessionID, 
-      'Please login using the browser session. The extraction will continue automatically once you are logged in.'
+      'Please login using the browser session. The extraction will continue automatically once you are logged in.',
+      liveViewUrl
     );
 
     let loggedIn = false;
