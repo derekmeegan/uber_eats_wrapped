@@ -28,6 +28,7 @@ const StagehandConfig: ConstructorParams = {
       }
     }],
     browserSettings: {
+      solveCaptchas: false,
       viewport: {
         width: 1024,
         height: 768,
