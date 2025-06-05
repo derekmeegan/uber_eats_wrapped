@@ -250,7 +250,7 @@ async function main({
   console.log("Extraction completed successfully");
 }
 
-exports.handler = async function(event: any) {
+export const handler = async function(event: any) {
   // Extract user email from async API Gateway invocation
   const userEmail = event.userEmail;
 
