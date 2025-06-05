@@ -8,7 +8,7 @@ const StagehandConfig: ConstructorParams = {
   verbose: 1,
   domSettleTimeoutMs: 30_000,
   
-  // LLM configuration - matching the working example format
+  // LLM configuration
   modelName: "openai/gpt-4.1-mini" as any,
   modelClientOptions: {
     apiKey: process.env.OPENAI_API_KEY, /* Model API key */

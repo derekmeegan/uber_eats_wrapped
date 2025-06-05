@@ -266,15 +266,32 @@ export const handler = async function(event: any) {
     const stagehand = new Stagehand(StagehandConfig);
     await stagehand.init();
 
-    const page = stagehand.page;
-    const context = stagehand.context;
-    await main({
-      page,
-      context,
-      stagehand,
-      userEmail,
-    });
-    await stagehand.close();
+    try {
+      const page = stagehand.page;
+      const context = stagehand.context;
+      
+      try {
+        await main({
+          page,
+          context,
+          stagehand,
+          userEmail,
+        });
+        console.log("Main extraction function completed successfully");
+      } catch (mainError) {
+        console.error("Error in main extraction function:", mainError);
+        // Re-throw to be handled by outer catch
+        throw mainError;
+      }
+    } finally {
+      // Always close the stagehand session, even on error
+      try {
+        await stagehand.close();
+        console.log("Stagehand session closed successfully");
+      } catch (closeError) {
+        console.error("Error closing stagehand session:", closeError);
+      }
+    }
   } catch (error) {
     console.error("Error in extraction process:", error);
     await updateStatus(userEmail, 'error', undefined, `Extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
