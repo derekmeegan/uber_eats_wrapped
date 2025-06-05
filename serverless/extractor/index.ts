@@ -107,12 +107,15 @@ async function main({
       liveViewUrl
     );
 
+    // allow time for iframe to setup
+    await page.waitForTimeout(30_000);
+
     let loggedIn = false;
 
     while (!loggedIn) {
       await page.waitForTimeout(30_000);
       // wait for user to login by observing if cart button is visible
-      const [cartButton] = await page.observe("Click the cart button that contais the user's orders");
+      const [cartButton] = await page.observe("Click the cart button that contains the user's orders. Do not scroll the page it should be in view.");
 
       const cartButtonFiltered = [cartButton].filter((button: ObserveResult) => button && button.description.toLowerCase().includes("cart"));
       console.log(cartButtonFiltered);
