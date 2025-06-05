@@ -17,7 +17,8 @@
   },
   "include": [
     "*.ts",
-    "*.js"
+    "*.js",
+    "llm_clients/**/*.ts"
   ],
   "exclude": [
     "node_modules",
