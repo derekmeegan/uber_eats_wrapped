@@ -84,12 +84,6 @@ aws configure
 npm install -g aws-cdk
 ```
 
-### Environment Variables
-```bash
-# Copy and configure environment
-cp .env.example .env
-```
-
 ### Deploy Infrastructure
 ```bash
 cd infra
