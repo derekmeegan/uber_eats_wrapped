@@ -326,6 +326,7 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
                 width: 100%;
                 border-collapse: separate;
                 border-spacing: 10px;
+                table-layout: fixed;
             }}
             .stat-card {{
                 background: white;
@@ -333,7 +334,7 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
                 border-radius: 12px;
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
                 border-left: 4px solid #667eea;
-                width: 100%;
+                width: 33.33%;
                 vertical-align: top;
             }}
             .stat-label {{
