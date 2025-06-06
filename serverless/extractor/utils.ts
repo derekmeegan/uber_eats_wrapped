@@ -1,7 +1,6 @@
 import { ObserveResult, Page } from "@browserbasehq/stagehand";
 import boxen from "boxen";
 import chalk from "chalk";
-import fs from "fs/promises";
 import { z } from "zod";
 
 export function announce(message: string, title?: string) {
@@ -97,26 +96,17 @@ export async function clearOverlays(page: Page) {
   });
 }
 
+// In-memory cache for Lambda execution (since file system is read-only)
+const memoryCache: Record<string, ObserveResult> = {};
+
 export async function simpleCache(
   instruction: string,
   actionToCache: ObserveResult,
 ) {
-  // Save action to cache.json
+  // Save action to in-memory cache for Lambda compatibility
   try {
-    // Read existing cache if it exists
-    let cache: Record<string, ObserveResult> = {};
-    try {
-      const existingCache = await fs.readFile("cache.json", "utf-8");
-      cache = JSON.parse(existingCache);
-    } catch (error) {
-      // File doesn't exist yet, use empty cache
-    }
-
-    // Add new action to cache
-    cache[instruction] = actionToCache;
-
-    // Write updated cache to file
-    await fs.writeFile("cache.json", JSON.stringify(cache, null, 2));
+    memoryCache[instruction] = actionToCache;
+    console.log(chalk.blue("Cached action for:"), instruction);
   } catch (error) {
     console.error(chalk.red("Failed to save to cache:"), error);
   }
@@ -125,13 +115,7 @@ export async function simpleCache(
 export async function readCache(
   instruction: string,
 ): Promise<ObserveResult | null> {
-  try {
-    const existingCache = await fs.readFile("cache.json", "utf-8");
-    const cache: Record<string, ObserveResult> = JSON.parse(existingCache);
-    return cache[instruction] || null;
-  } catch (error) {
-    return null;
-  }
+  return memoryCache[instruction] || null;
 }
 
 /**

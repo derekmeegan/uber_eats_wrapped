@@ -183,7 +183,7 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
     df = (
         pd.DataFrame(add_years_to_orders(orders))
           .assign(
-              total_value=lambda d: pd.to_numeric(d.total.str.replace("$", "")),
+              total_value=lambda d: d.total,
               ts=lambda d: pd.to_datetime(d["date"] + " " + d["time"]),
           )
           .sort_values("ts", ascending=True)      # chronological for plotting
