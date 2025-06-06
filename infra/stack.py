@@ -23,16 +23,20 @@ class UberEatsAnalyzerStack(Stack):
         orders_bucket = s3.Bucket(self, "OrdersBucket",
             bucket_name="ubereats-orders-bucket",
             removal_policy=RemovalPolicy.DESTROY,
-            public_read_access=False,  # We'll use bucket policy for specific prefixes
         )
         
-        # Add bucket policy to allow public read access to charts/ prefix
-        orders_bucket.add_to_resource_policy(iam.PolicyStatement(
-            effect=iam.Effect.ALLOW,
-            principals=[iam.AnyPrincipal()],
-            actions=["s3:GetObject"],
-            resources=[orders_bucket.arn_for_objects("charts/*")]
-        ))
+        # Create separate public S3 bucket for chart images
+        charts_bucket = s3.Bucket(self, "ChartsBucket",
+            bucket_name="ubereats-charts-public-bucket",
+            removal_policy=RemovalPolicy.DESTROY,
+            public_read_access=True,
+            block_public_access=s3.BlockPublicAccess(
+                block_public_acls=False,
+                block_public_policy=False,
+                ignore_public_acls=False,
+                restrict_public_buckets=False
+            )
+        )
 
         browser_base_project_id = secretsmanager.Secret.from_secret_name_v2(
             self,
@@ -88,10 +92,12 @@ class UberEatsAnalyzerStack(Stack):
                 "DEREK_SENDGRID_API_KEY": derek_sendgrid_api_key.secret_value.to_string(),
                 "DEREK_SENDER_EMAIL": derek_sender_email.secret_value.to_string(),
                 "S3_BUCKET_NAME": orders_bucket.bucket_name,
+                "CHARTS_BUCKET_NAME": charts_bucket.bucket_name,
             },
         )
 
         orders_bucket.grant_read_write(analyzer_function)
+        charts_bucket.grant_read_write(analyzer_function)
 
         # Create execution roles
         extractor_execution_role = iam.Role(

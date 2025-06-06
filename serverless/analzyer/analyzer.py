@@ -147,7 +147,7 @@ def upload_chart_to_s3(fig, chart_name: str, timestamp: str) -> str:
         buf.seek(0)
         
         chart_key = f"charts/{timestamp}_{chart_name}_chart.png"
-        bucket_name = os.environ.get('S3_BUCKET_NAME', 'ubereats-orders-bucket')
+        bucket_name = os.environ.get('CHARTS_BUCKET_NAME', 'ubereats-orders-bucket')
         
         s3_client.put_object(
             Bucket=bucket_name,
