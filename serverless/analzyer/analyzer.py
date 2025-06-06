@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from botocore.exceptions import ClientError
-from sendgrid import SendGridAPIClient, Mail, Personalization, To, Bcc, Content
+from sendgrid import SendGridAPIClient, Mail, To, Content
 from sendgrid.helpers.mail import Email
 
 logger = logging.getLogger()
@@ -436,7 +436,7 @@ def send_email(to_email: str, subject: str, content: str) -> bool:
         # Create message with HTML content
         message = Mail(
             from_email=Email(sender_email),
-            to_emails=Email(to_email),
+            to_emails=To(to_email),
             subject=subject,
             html_content=Content("text/html", content)
         )
