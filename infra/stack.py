@@ -23,7 +23,16 @@ class UberEatsAnalyzerStack(Stack):
         orders_bucket = s3.Bucket(self, "OrdersBucket",
             bucket_name="ubereats-orders-bucket",
             removal_policy=RemovalPolicy.DESTROY,
+            public_read_access=False,  # We'll use bucket policy for specific prefixes
         )
+        
+        # Add bucket policy to allow public read access to charts/ prefix
+        orders_bucket.add_to_resource_policy(iam.PolicyStatement(
+            effect=iam.Effect.ALLOW,
+            principals=[iam.AnyPrincipal()],
+            actions=["s3:GetObject"],
+            resources=[orders_bucket.arn_for_objects("charts/*")]
+        ))
 
         browser_base_project_id = secretsmanager.Secret.from_secret_name_v2(
             self,

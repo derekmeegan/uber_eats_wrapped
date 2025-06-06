@@ -1,4 +1,3 @@
-import base64
 import io
 import json
 import logging
@@ -129,6 +128,44 @@ def get_best_comparison(amount):
 
 
 
+def upload_chart_to_s3(fig, chart_name: str, timestamp: str) -> str:
+    """
+    Upload a matplotlib figure to S3 and return the public URL.
+    
+    Args:
+        fig: matplotlib figure object
+        chart_name: name for the chart file (e.g., 'spending', 'cumulative')
+        timestamp: timestamp string for unique filename
+        
+    Returns:
+        Public URL of the uploaded chart or None if upload failed
+    """
+    try:
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=150, bbox_inches='tight', 
+                    facecolor='white', edgecolor='none')
+        buf.seek(0)
+        
+        chart_key = f"charts/{timestamp}_{chart_name}_chart.png"
+        bucket_name = os.environ.get('S3_BUCKET_NAME', 'ubereats-orders-bucket')
+        
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=chart_key,
+            Body=buf.getvalue(),
+            ContentType='image/png'
+        )
+        
+        chart_url = f"https://{bucket_name}.s3.amazonaws.com/{chart_key}"
+        buf.close()
+        
+        logger.info(f"Successfully uploaded {chart_name} chart to S3: {chart_url}")
+        return chart_url
+        
+    except Exception as e:
+        logger.error(f"Error uploading {chart_name} chart to S3: {str(e)}")
+        return None
+
 def analyze_orders(orders: List[Dict[str, Any]]) -> str:
     """
     Analyze Uber Eats orders and generate HTML email body.
@@ -204,11 +241,11 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
     plt.xticks(rotation=45, ha='right')
     fig.tight_layout()
 
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches='tight', 
-                facecolor='white', edgecolor='none')
-    b64_chart = base64.b64encode(buf.getvalue()).decode()
-    buf.close()
+    # Generate unique timestamp for charts
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Upload spending chart to S3
+    spending_chart_url = upload_chart_to_s3(fig, 'spending', timestamp)
     plt.close(fig)  # Free memory
 
     # --- 5. Cumulative spending chart -------------------------------------------
@@ -242,11 +279,8 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
     plt.xticks(rotation=45, ha='right')
     fig.tight_layout()
 
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches='tight', 
-                facecolor='white', edgecolor='none')
-    b64_chart_cum = base64.b64encode(buf.getvalue()).decode()
-    buf.close()
+    # Upload cumulative chart to S3
+    cumulative_chart_url = upload_chart_to_s3(fig, 'cumulative', timestamp)
     plt.close(fig)  # Free memory
 
     html_body = f"""
@@ -282,10 +316,16 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
                 background-clip: text;
             }}
             .stats-grid {{
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 20px;
                 margin-bottom: 40px;
+            }}
+            .stats-row {{
+                width: 100%;
+                margin-bottom: 20px;
+            }}
+            .stats-row table {{
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 10px;
             }}
             .stat-card {{
                 background: white;
@@ -293,7 +333,8 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
                 border-radius: 12px;
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
                 border-left: 4px solid #667eea;
-                transition: transform 0.2s ease;
+                width: 100%;
+                vertical-align: top;
             }}
             .stat-label {{
                 font-size: 14px;
@@ -310,11 +351,24 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
             .chart-container {{
                 margin: 30px 0;
                 text-align: center;
+                padding: 20px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             }}
             .chart-container img {{
                 max-width: 100%;
-                border-radius: 12px;
+                height: auto;
+                border-radius: 8px;
                 box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+                transition: transform 0.2s ease;
+            }}
+            .chart-container img:hover {{
+                transform: scale(1.02);
+            }}
+            .chart-container p {{
+                margin: 0;
+                font-size: 16px;
             }}
             h3 {{
                 color: #2c3e50;
@@ -355,59 +409,77 @@ def analyze_orders(orders: List[Dict[str, Any]]) -> str:
             <h2>🍔 Your Uber Eats Summary</h2>
             
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Total Spent</div>
-                    <div class="stat-value">${total_spent:,.2f}</div>
+                <div class="stats-row">
+                    <table>
+                        <tr>
+                            <td class="stat-card">
+                                <div class="stat-label">Total Spent</div>
+                                <div class="stat-value">${total_spent:,.2f}</div>
+                            </td>
+                            <td class="stat-card">
+                                <div class="stat-label">Average Order Cost</div>
+                                <div class="stat-value">${avg_order_value:.2f}</div>
+                            </td>
+                            <td class="stat-card">
+                                <div class="stat-label">Total Orders</div>
+                                <div class="stat-value">{total_orders}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Average Order Cost</div>
-                    <div class="stat-value">${avg_order_value:.2f}</div>
+                <div class="stats-row">
+                    <table>
+                        <tr>
+                            <td class="stat-card">
+                                <div class="stat-label">Cancelled Orders</div>
+                                <div class="stat-value">{canceled_orders}</div>
+                            </td>
+                            <td class="stat-card">
+                                <div class="stat-label">Peak Ordering Hour</div>
+                                <div class="stat-value">{top_hour}</div>
+                            </td>
+                            <td class="stat-card">
+                                <div class="stat-label">Top Day to Order</div>
+                                <div class="stat-value">{top_day}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total Orders</div>
-                    <div class="stat-value">{total_orders}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Cancelled Orders</div>
-                    <div class="stat-value">{canceled_orders}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Peak Ordering Hour</div>
-                    <div class="stat-value">{top_hour}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Top Day to Order</div>
-                    <div class="stat-value">{top_day}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Top Restaurant</div>
-                    <div class="stat-value">{top_restaurant}</div>
-                    <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">
-                        Ordered {top_restaurant_count} times
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Largest Order</div>
-                    <div class="stat-value">${largest_order_row['total_value']:.2f}</div>
-                    <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">
-                        {largest_order_row['restaurantName']} ({largest_order_row['date']})
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Could Have Bought</div>
-                    <div class="stat-value">{get_best_comparison(total_spent)['quantity']}</div>
-                    <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">
-                        {get_best_comparison(total_spent)['description']}
-                    </div>
+                <div class="stats-row">
+                    <table>
+                        <tr>
+                            <td class="stat-card">
+                                <div class="stat-label">Top Restaurant</div>
+                                <div class="stat-value">{top_restaurant}</div>
+                                <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">
+                                    Ordered {top_restaurant_count} times
+                                </div>
+                            </td>
+                            <td class="stat-card">
+                                <div class="stat-label">Largest Order</div>
+                                <div class="stat-value">${largest_order_row['total_value']:.2f}</div>
+                                <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">
+                                    {largest_order_row['restaurantName']} ({largest_order_row['date']})
+                                </div>
+                            </td>
+                            <td class="stat-card">
+                                <div class="stat-label">Could Have Bought</div>
+                                <div class="stat-value">{get_best_comparison(total_spent)['quantity']}</div>
+                                <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">
+                                    {get_best_comparison(total_spent)['description']}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
 
             <div class="chart-container">
-                <img src="data:image/png;base64,{b64_chart}" alt="Spending Over Time"/>
+                {f'<img src="{spending_chart_url}" alt="Spending Over Time Chart - Shows your Uber Eats spending patterns over time" style="display: block; margin: 0 auto; max-width: 100%; height: auto;"/>' if spending_chart_url else f'<div style="text-align: center; color: #7f8c8d; padding: 20px;"><p>📊 Monthly Spending Summary</p><div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">{monthly_spend.to_frame("Amount").to_html(classes="", table_id="", escape=False)}</div></div>'}
             </div>
 
             <div class="chart-container">
-                <img src="data:image/png;base64,{b64_chart_cum}" alt="Cumulative Spending Over Time"/>
+                {f'<img src="{cumulative_chart_url}" alt="Cumulative Spending Chart - Shows your total Uber Eats spending growth over time" style="display: block; margin: 0 auto; max-width: 100%; height: auto;"/>' if cumulative_chart_url else '<p style="text-align: center; color: #7f8c8d; padding: 20px;">📈 See your order history table below for spending progression</p>'}
             </div>
 
             <h3>📋 Order Details</h3>
