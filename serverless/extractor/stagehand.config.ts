@@ -22,8 +22,8 @@ const StagehandConfig: ConstructorParams = {
     proxies: [{
       "type": "browserbase",
       "geolocation": {
-        "city": "PHILADELPHIA",
-        "state": "PA",
+        "city": "NEW_YORK",
+        "state": "NY",
         "country": "US"
       }
     }],
