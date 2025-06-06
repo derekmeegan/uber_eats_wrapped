@@ -29,6 +29,10 @@ const StagehandConfig: ConstructorParams = {
     }],
     browserSettings: {
       solveCaptchas: false,
+      context: {
+        "id": "24ab1478-599c-4910-b7e9-de32e2925756",
+        "persist": true
+      },
       viewport: {
         width: 1024,
         height: 768,
